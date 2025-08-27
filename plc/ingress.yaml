@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: plc-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    spec.ingressClassName: "nginx"
+spec:
+  rules:
+    - host: plc.xjdao.xyz
+      http:
+        paths:
+          - backend:
+              service:
+                name: plc
+                port:
+                  number: 32582
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+      - plc.xjdao.xyz
+      secretName: xjdao.xyz-tls-secret

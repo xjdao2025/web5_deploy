@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: pds
+    app.kubernetes.io/name: pds
+  name: pds
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: pds
+      app.kubernetes.io/name: pds
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: pds
+        app.kubernetes.io/name: pds
+    spec:
+      containers:
+        - image: registry.devops.rivtower.com/web5/pds:v0.0.8
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LOG_ENABLED
+              value: "true"
+            - name: LOG_LEVEL
+              value: ${LOG_LEVEL}
+            - name: PDS_ADMIN_PASSWORD
+              value: ${PDS_ADMIN_PASSWORD}
+            - name: PDS_BLOBSTORE_DISK_LOCATION
+              value: /pds/blobs
+            - name: PDS_BSKY_APP_VIEW_DID
+              value: did:web:${bskyFQDN}
+            - name: PDS_BSKY_APP_VIEW_URL
+              value: https://${bskyFQDN}
+            - name: PDS_DATA_DIRECTORY
+              value: /pds
+            - name: PDS_DID_PLC_URL
+              value: https://${plcFQDN}
+            - name: PDS_ENABLE_DID_DOC_WITH_SESSION
+              value: "true"
+            - name: PDS_HOSTNAME
+              value: ${pdsFQDN}
+            - name: PDS_INVITE_INTERVAL
+              value: "604800000"
+            - name: PDS_INVITE_REQUIRED
+              value: "false"
+            - name: PDS_JWT_SECRET
+              value: ${PDS_JWT_SECRET}
+            - name: PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX
+              value: ${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}
+            - name: PDS_PORT
+              value: "${PDS_PORT}"
+            - name: PDS_SERVICE_DID
+              value: did:web:${pdsFQDN}
+            - name: PDS_RATE_LIMITS_ENABLED
+              value: "false"
+          name: pds
+          ports:
+            - containerPort: ${PDS_PORT}
+              name: http
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 4000m
+              memory: 8Gi
+            requests:
+              cpu: 500m
+              memory: 1Gi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /pds
+              name: pds
+            - mountPath: /etc/localtime
+              name: node-localtime
+      volumes:
+      - hostPath:
+          path: /etc/localtime
+        name: node-localtime
+  volumeClaimTemplates:
+    - metadata:
+        name: pds
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 50Gi

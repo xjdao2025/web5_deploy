@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: bsky
+    app.kubernetes.io/name: bsky
+  name: bsky
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: bsky
+      app.kubernetes.io/name: bsky
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: bsky
+        app.kubernetes.io/name: bsky
+    spec:
+      containers:
+        - image: registry.devops.rivtower.com/web5/bsky:v0.0.10
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LOG_ENABLED
+              value: "true"
+            - name: LOG_DESTINATION
+              value: "1"
+            - name: LOG_LEVEL
+              value: ${LOG_LEVEL}
+            - name: BSKY_PORT
+              value: "${BSKY_PORT}"
+            - name: BSKY_DB_POSTGRES_URL
+              value: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/bsky
+            - name: BSKY_DB_POSTGRES_SCHEMA
+              value: bsky
+            - name: REDIS_HOST
+              value: localhost
+            - name: BSKY_ADMIN_PASSWORDS
+              value: ${BSKY_ADMIN_PASSWORDS}
+            - name: BSKY_BLOB_CACHE_LOC
+              value: /cache/
+            - name: BSKY_BSYNC_HTTP_VERSION
+              value: "1.1"
+            - name: BSKY_BSYNC_PORT
+              value: "3002"
+            - name: BSKY_BSYNC_URL
+              value: "http://localhost:3002"
+            # - name: BSKY_COURIER_URL
+            #   value: "http://fake-courier.example.invalid/"
+            - name: BSKY_DATAPLANE_HTTP_VERSION
+              value: "1.1"
+            - name: BSKY_DATAPLANE_PORT
+              value: "3001"
+            - name: BSKY_DATAPLANE_URLS
+              value: "http://localhost:3001"
+            - name: BSKY_DID_PLC_URL
+              value: https://${plcFQDN}
+            - name: BSKY_LABELS_FROM_ISSUER_DIDS
+              value: ${BSKY_LABELS_FROM_ISSUER_DIDS}
+            - name: BSKY_PUBLIC_URL
+              value: https://${bskyFQDN}
+            - name: BSKY_REPO_PROVIDER
+              value: wss://${pdsFQDN}
+            - name: BSKY_SERVER_DID
+              value: did:web:${bskyFQDN}
+            - name: BSKY_SERVICE_SIGNING_KEY
+              value: ${BSKY_SERVICE_SIGNING_KEY}
+            - name: DID_PLC_URL
+              value: https://${plcFQDN}
+            - name: CLUSTER_WORKER_COUNT
+              value: "6"
+            - name: NODE_CLUSTER_SCHED_POLICY
+              value: "rr"
+            - name: ENABLE_MIGRATIONS
+              value: "false"
+            - name: MOD_SERVICE_DID
+              value: did:web:${ozoneFQDN}
+            - name: UV_THREADPOOL_SIZE
+              value: "16"
+          name: bsky
+          ports:
+            - containerPort: ${BSKY_PORT}
+              name: http
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 6000m
+              memory: 8Gi
+            requests:
+              cpu: 1000m
+              memory: 1024Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /cache
+              name: cache
+            - mountPath: /etc/localtime
+              name: node-localtime
+        - image: m.daocloud.io/docker.io/postgres:16-bookworm
+          imagePullPolicy: IfNotPresent
+          name: database
+          env:
+            - name: POSTGRES_USER
+              value: ${POSTGRES_USER}
+            - name: POSTGRES_PASSWORD
+              value: ${POSTGRES_PASSWORD}
+            - name: POSTGRES_DB
+              value: bsky
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_INITDB_ARGS
+              value: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 2000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: database
+            - mountPath: /etc/localtime
+              name: node-localtime
+        - image: m.daocloud.io/docker.io/redis:7-bookworm
+          imagePullPolicy: IfNotPresent
+          name: redis
+          ports:
+            - containerPort: 6379
+              name: redis
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 2000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /data
+              name: redis
+            - mountPath: /etc/localtime
+              name: node-localtime
+      volumes:
+      - hostPath:
+          path: /etc/localtime
+        name: node-localtime
+  volumeClaimTemplates:
+    - metadata:
+        name: cache
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 20Gi
+    - metadata:
+        name: database
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 20Gi
+    - metadata:
+        name: redis
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 20Gi

@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: plc
+    app.kubernetes.io/name: plc
+  name: plc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: plc
+      app.kubernetes.io/name: plc
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: plc
+        app.kubernetes.io/name: plc
+    spec:
+      containers:
+        - image: registry.devops.rivtower.com/web5/plc:v0.0.2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LOG_ENABLED
+              value: "true"
+            - name: LOG_DESTINATION
+              value: "1"
+            - name: LOG_LEVEL
+              value: ${LOG_LEVEL}
+            - name: PORT
+              value: "${PLC_PORT}"
+            - name: DATABASE_URL
+              value: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/plc
+            - name: DB_CREDS_JSON
+              value: '{"username":"${POSTGRES_USER}","password":"${POSTGRES_PASSWORD}","host":"localhost","port":"5432","database":"plc"}'
+            - name: DB_MIGRATE_CREDS_JSON
+              value: '{"username":"${POSTGRES_USER}","password":"${POSTGRES_PASSWORD}","host":"localhost","port":"5432","database":"plc"}'
+            - name: ENABLE_MIGRATIONS
+              value: "true"
+          name: plc
+          ports:
+            - containerPort: ${PLC_PORT}
+              name: http
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 2000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /etc/localtime
+              name: node-localtime
+        - image: m.daocloud.io/docker.io/postgres:16-bookworm
+          imagePullPolicy: IfNotPresent
+          name: database
+          env:
+            - name: POSTGRES_USER
+              value: ${POSTGRES_USER}
+            - name: POSTGRES_PASSWORD
+              value: ${POSTGRES_PASSWORD}
+            - name: POSTGRES_DB
+              value: plc
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_INITDB_ARGS
+              value: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 2000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: database
+            - mountPath: /etc/localtime
+              name: node-localtime
+      volumes:
+      - hostPath:
+          path: /etc/localtime
+        name: node-localtime
+  volumeClaimTemplates:
+    - metadata:
+        name: database
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 20Gi

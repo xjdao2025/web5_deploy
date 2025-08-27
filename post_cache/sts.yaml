@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app.kubernetes.io/instance: post-cache
+    app.kubernetes.io/name: post-cache
+  name: post-cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: post-cache
+      app.kubernetes.io/name: post-cache
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: post-cache
+        app.kubernetes.io/name: post-cache
+    spec:
+      containers:
+        - image: registry.devops.rivtower.com/web5/post_cache:v0.1.55
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DB_URL
+              value: postgres://postgres:postgres@localhost/posts
+            - name: PDS
+              value: web5.xjdao.xyz
+            - name: BSKY
+              value: https://web5.xjdao.xyz
+            - name: PASSWORD
+              value: ${PDS_ADMIN_PASSWORD}
+            - name: VISITOR
+              value: "******@web5.xjdao.xyz"
+            - name: VISITOR_PASSWORD
+              value: "********************************"
+          name: post-cache
+          command: ["post_cache"]
+          args: [
+            "--db-url", "$(DB_URL)",
+            "--pds", "$(PDS)",
+            "--bsky", "$(BSKY)",
+            "--password", "$(PASSWORD)",
+            "--visitor", "$(VISITOR)",
+            "--visitor-password", "$(VISITOR_PASSWORD)"
+          ]
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 4000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 1024Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /etc/localtime
+              name: node-localtime
+        - image: m.daocloud.io/docker.io/postgres:16-bookworm
+          imagePullPolicy: IfNotPresent
+          name: database
+          env:
+            - name: POSTGRES_USER
+              value: ${POSTGRES_USER}
+            - name: POSTGRES_PASSWORD
+              value: ${POSTGRES_PASSWORD}
+            - name: POSTGRES_DB
+              value: posts
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_INITDB_ARGS
+              value: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
+          resources: 
+            limits:
+              cpu: 2000m
+              memory: 4096Mi
+            requests:
+              cpu: 200m
+              memory: 512Mi
+          securityContext: 
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: database
+            - mountPath: /etc/localtime
+              name: node-localtime
+      volumes:
+      - hostPath:
+          path: /etc/localtime
+        name: node-localtime
+  volumeClaimTemplates:
+    - metadata:
+        name: database
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: alicloud-disk-essd
+        resources:
+          requests:
+            storage: 20Gi

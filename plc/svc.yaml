@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: plc
+  labels:
+    app.kubernetes.io/instance: plc
+    app.kubernetes.io/name: plc
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: ${PLC_PORT}
+      protocol: TCP
+      targetPort: ${PLC_PORT}
+  selector:
+    app.kubernetes.io/instance: plc
+    app.kubernetes.io/name: plc

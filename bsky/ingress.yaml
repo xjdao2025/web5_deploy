@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bsky-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    spec.ingressClassName: "nginx"
+spec:
+  rules:
+    - host: bsky.xjdao.xyz
+      http:
+        paths:
+          - backend:
+              service:
+                name: bsky
+                port:
+                  number: 32584
+            path: /
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+      - bsky.xjdao.xyz
+      secretName: xjdao.xyz-tls-secret
