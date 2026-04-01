@@ -18,7 +18,7 @@ spec:
         app.kubernetes.io/name: pds
     spec:
       containers:
-        - image: registry.devops.rivtower.com/web5/pds:v0.0.8
+        - image: ghcr.io/xjdao2025/pds:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: LOG_ENABLED

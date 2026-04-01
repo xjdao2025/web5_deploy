@@ -18,7 +18,7 @@ spec:
         app.kubernetes.io/name: post-cache
     spec:
       containers:
-        - image: registry.devops.rivtower.com/web5/post_cache:v0.1.55
+        - image: ghcr.io/xjdao2025/post_cache:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: DB_URL
