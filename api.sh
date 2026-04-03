@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 设置环境变量
-export PDS_HOSTNAME=web5.xjdao.xyz
-export PLC_HOSTNAME=plc.xjdao.xyz
+export PDS_HOSTNAME=web5.xjdao.net
+export PLC_HOSTNAME=plc.xjdao.net
 
 # /xrpc/com.atproto.server.createAccount
 export pds_account_handle=$(openssl rand --hex 2)
@@ -10,7 +10,7 @@ export pds_account_password=$(openssl rand --hex 16)
 export createAccount_rsp=$(curl -s https://$PDS_HOSTNAME/xrpc/com.atproto.server.createAccount \
     -X POST \
     -H "Content-Type: application/json" \
-    -d '{"handle": "'$pds_account_handle'.web5.xjdao.xyz", "email": "'$pds_account_handle'@web5.xjdao.xyz", "password": "'$pds_account_password'"}' | jq .)
+    -d '{"handle": "'$pds_account_handle'.web5.xjdao.net", "email": "'$pds_account_handle'@web5.xjdao.net", "password": "'$pds_account_password'"}' | jq .)
 export did=$(echo $createAccount_rsp | jq -r .did)
 echo "--- /xrpc/com.atproto.server.createAccount
 pds_account_handle = $pds_account_handle
@@ -21,7 +21,7 @@ response = $createAccount_rsp"
 export createSession_rsp=$(curl -s https://$PDS_HOSTNAME/xrpc/com.atproto.server.createSession \
     -X POST \
     -H "Content-Type: application/json" \
-    -d '{"identifier": "'$pds_account_handle'@web5.xjdao.xyz", "password": "'$pds_account_password'"}' | jq .)
+    -d '{"identifier": "'$pds_account_handle'@web5.xjdao.net", "password": "'$pds_account_password'"}' | jq .)
 export accessJwt=$(echo $createSession_rsp | jq -r .accessJwt)
 export refreshJwt=$(echo $createSession_rsp | jq -r .refreshJwt)
 echo "

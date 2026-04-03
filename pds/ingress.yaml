@@ -7,7 +7,7 @@ metadata:
     spec.ingressClassName: "nginx"
 spec:
   rules:
-    - host: web5.xjdao.xyz
+    - host: web5.xjdao.net
       http:
         paths:
           - backend:
@@ -17,7 +17,7 @@ spec:
                   number: 32583
             path: /
             pathType: ImplementationSpecific
-    - host: "*.web5.xjdao.xyz"
+    - host: "*.web5.xjdao.net"
       http:
         paths:
           - backend:
@@ -29,8 +29,8 @@ spec:
             pathType: ImplementationSpecific
   tls:
     - hosts:
-      - web5.xjdao.xyz
-      secretName: xjdao.xyz-tls-secret
+      - web5.xjdao.net
+      secretName: xjdao.net-tls-secret
     - hosts:
-      - "*.web5.xjdao.xyz"
-      secretName: web5.xjdao.xyz-tls-secret
+      - "*.web5.xjdao.net"
+      secretName: web5.xjdao.net-tls-secret

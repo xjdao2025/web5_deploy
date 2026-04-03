@@ -84,11 +84,11 @@ spec:
               protocol: TCP
           resources: 
             limits:
-              cpu: 6000m
-              memory: 8Gi
+              cpu: 500m
+              memory: 1Gi
             requests:
-              cpu: 1000m
-              memory: 1024Mi
+              cpu: 100m
+              memory: 256Mi
           securityContext: 
             runAsUser: 0
             runAsGroup: 0
@@ -117,11 +117,11 @@ spec:
               protocol: TCP
           resources: 
             limits:
-              cpu: 2000m
-              memory: 4096Mi
+              cpu: 500m
+              memory: 1Gi
             requests:
-              cpu: 200m
-              memory: 512Mi
+              cpu: 100m
+              memory: 256Mi
           securityContext: 
             runAsUser: 0
             runAsGroup: 0
@@ -139,11 +139,11 @@ spec:
               protocol: TCP
           resources: 
             limits:
-              cpu: 2000m
-              memory: 4096Mi
+              cpu: 500m
+              memory: 1Gi
             requests:
-              cpu: 200m
-              memory: 512Mi
+              cpu: 100m
+              memory: 256Mi
           securityContext: 
             runAsUser: 0
             runAsGroup: 0
@@ -164,7 +164,7 @@ spec:
         storageClassName: alicloud-disk-essd
         resources:
           requests:
-            storage: 20Gi
+            storage: 1Gi
     - metadata:
         name: database
       spec:
@@ -172,7 +172,7 @@ spec:
         storageClassName: alicloud-disk-essd
         resources:
           requests:
-            storage: 20Gi
+            storage: 1Gi
     - metadata:
         name: redis
       spec:
@@ -180,4 +180,4 @@ spec:
         storageClassName: alicloud-disk-essd
         resources:
           requests:
-            storage: 20Gi
+            storage: 1Gi
