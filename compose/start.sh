@@ -104,8 +104,9 @@ while ! compose logs post-cache 2>/dev/null | grep -q 'Connected to pds'; do
   sleep 2
 done
 
+compose cp "$deploy_dir/seed/demo.exs" rice:/tmp/demo.exs
 compose exec -T rice \
-  /app/bin/rice rpc 'Code.eval_file("/opt/demo.exs"); XiangjianDemoSeed.run()'
+  /app/bin/rice rpc 'Code.eval_file("/tmp/demo.exs"); XiangjianDemoSeed.run()'
 
 wait_http "frontend" "http://127.0.0.1:18080/"
 . "$env_file"

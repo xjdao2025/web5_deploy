@@ -134,7 +134,6 @@ services:
     command: ["/bin/sh", "-c", "/app/bin/migrate && exec /app/bin/server"]
     volumes:
       - rice-storage:/srv/rice/storage
-      - ./seed/demo.exs:/opt/demo.exs:ro
     depends_on:
       postgres:
         condition: service_healthy
