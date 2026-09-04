@@ -1,0 +1,222 @@
+name: xiangjian-demo
+
+services:
+  postgres:
+    image: m.daocloud.io/docker.io/postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing compose/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/00-databases.sql:/docker-entrypoint-initdb.d/00-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  storage-init:
+    image: m.daocloud.io/docker.io/postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    user: "0:0"
+    command:
+      - /bin/sh
+      - -c
+      - mkdir -p /rice /pds && chown -R 65534:65534 /rice && chown -R 1000:1000 /pds
+    volumes:
+      - rice-storage:/rice
+      - pds-data:/pds
+    restart: "no"
+
+  plc:
+    image: ghcr.io/xjdao2025/did-method-plc@sha256:b37d0ddf4fde0eb5a1e96eccbea1be42b987682a4cf3b8a70ededd061b881a46
+    platform: linux/amd64
+    environment:
+      PORT: 3000
+      ENABLE_MIGRATIONS: "true"
+      DB_CREDS_JSON: '{"username":"postgres","password":"${POSTGRES_PASSWORD}","host":"postgres","port":"5432","database":"plc"}'
+      DB_MIGRATE_CREDS_JSON: '{"username":"postgres","password":"${POSTGRES_PASSWORD}","host":"postgres","port":"5432","database":"plc"}'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pds:
+    image: ghcr.io/xjdao2025/pds@sha256:2cabd417e214a7efec865daec95d17f4496bd435188682201a868fad23f87d1d
+    platform: linux/amd64
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/ca.crt
+      PDS_PORT: 3000
+      PDS_HOSTNAME: pds.uat.test
+      PDS_SERVICE_DID: did:web:pds.uat.test
+      PDS_SERVICE_HANDLE_DOMAINS: .uat.test
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_DID_PLC_URL: http://plc:3000
+      PDS_BSKY_APP_VIEW_URL: https://appview.uat.test
+      PDS_BSKY_APP_VIEW_DID: did:web:appview.uat.test
+      PDS_ENABLE_DID_DOC_WITH_SESSION: "true"
+      PDS_INVITE_REQUIRED: "false"
+      PDS_RATE_LIMITS_ENABLED: "false"
+      PDS_DISABLE_SSRF_PROTECTION: "true"
+      PDS_DEV_MODE: "true"
+      PDS_JWT_SECRET: ${PDS_JWT_SECRET:?missing compose/.env}
+      PDS_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD:?missing compose/.env}
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${PDS_ROTATION_KEY:?missing compose/.env}
+    volumes:
+      - pds-data:/pds
+      - ./certs/ca.crt:/certs/ca.crt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      plc:
+        condition: service_started
+      storage-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  appview:
+    image: ghcr.io/xjdao2025/bsky@sha256:518c753864b87db929aa6b5ca13c6fe6b28126fb4fed0319d839d6299b622eba
+    platform: linux/amd64
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/ca.crt
+      NODE_ENV: production
+      LOG_ENABLED: "true"
+      LOG_LEVEL: info
+      BSKY_PORT: 3000
+      BSKY_DB_POSTGRES_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/bsky
+      BSKY_DB_POSTGRES_SCHEMA: public
+      BSKY_DATAPLANE_PORT: 3001
+      BSKY_DATAPLANE_URLS: http://localhost:3001
+      BSKY_DATAPLANE_HTTP_VERSION: "1.1"
+      BSKY_BSYNC_PORT: 3002
+      BSKY_BSYNC_URL: http://localhost:3002
+      BSKY_BSYNC_HTTP_VERSION: "1.1"
+      BSKY_DID_PLC_URL: http://plc:3000
+      BSKY_PUBLIC_URL: https://appview.uat.test
+      BSKY_REPO_PROVIDER: wss://pds.uat.test
+      BSKY_SERVER_DID: did:web:appview.uat.test
+      BSKY_SERVICE_SIGNING_KEY: ${APPVIEW_SIGNING_KEY:?missing compose/.env}
+      BSKY_ADMIN_PASSWORDS: ${APPVIEW_ADMIN_PASSWORD:?missing compose/.env}
+      MOD_SERVICE_DID: did:web:appview.uat.test
+      BSKY_BLOB_CACHE_LOC: /cache
+      BSKY_DISABLE_SSRF_PROTECTION: "true"
+    volumes:
+      - appview-cache:/cache
+      - ./certs/ca.crt:/certs/ca.crt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pds:
+        condition: service_started
+    restart: unless-stopped
+
+  rice:
+    image: xiangjian/rice:demo
+    platform: linux/amd64
+    build:
+      context: "https://github.com/HaroldGin931/rice.git#7b5b57fddeb4cfc9de4d2bca2728574bc625649b"
+    environment:
+      PHX_SERVER: "true"
+      PORT: 4000
+      PHX_HOST: ${PUBLIC_HOST:-demo.wamo.social}
+      DATABASE_URL: ecto://postgres:${POSTGRES_PASSWORD}@postgres/rice
+      SECRET_KEY_BASE: ${RICE_SECRET_KEY_BASE:?missing compose/.env}
+      CORS_ORIGINS: ${PUBLIC_ORIGIN:-https://demo.wamo.social}
+      PDS_BASE_URL: http://pds:3000
+      PDS_PUBLIC_URL: ${PUBLIC_ORIGIN:-https://demo.wamo.social}/pds
+      PDS_HANDLE_DOMAIN: uat.test
+      PDS_EMAIL_DOMAIN: pds.uat.test
+      PDS_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD}
+      STORAGE_ROOT: /srv/rice/storage
+      OBAN_ENABLED: "false"
+      ALLOW_UAT_MOCK_SEED: "true"
+      MOCK_ACCOUNT_PASSWORD: ${MOCK_ACCOUNT_PASSWORD:?missing compose/.env}
+    command: ["/bin/sh", "-c", "/app/bin/migrate && exec /app/bin/server"]
+    volumes:
+      - rice-storage:/srv/rice/storage
+      - ./seed/demo.exs:/opt/demo.exs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+      pds:
+        condition: service_started
+    restart: unless-stopped
+
+  post-cache:
+    image: ghcr.io/xjdao2025/post_cache@sha256:26c450dbac89bccfa01f245ace847519c36ecde2902b7d66e7bc1b641ea05e9b
+    platform: linux/amd64
+    command:
+      - post_cache
+      - --db-url
+      - postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/post_cache
+      - --bsky
+      - http://pds:3000
+      - --pds
+      - pds.uat.test
+      - --password
+      - ${POST_CACHE_ADMIN_PASSWORD:?missing compose/.env}
+      - --visitor
+      - bob.uat.test
+      - --visitor-password
+      - ${MOCK_ACCOUNT_PASSWORD}
+    environment:
+      SSL_CERT_FILE: /certs/ca.crt
+    volumes:
+      - ./certs/ca.crt:/certs/ca.crt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pds:
+        condition: service_started
+      appview:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    image: xiangjian/frontend:demo
+    platform: linux/amd64
+    build:
+      context: "https://github.com/HaroldGin931/xiangjian_frontend.git#f91f2da726df40be7e509c302a2525a0e6549322"
+    environment:
+      XIANGJIAN_BACKEND_URL: http://gateway
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: ${PUBLIC_HOST:-demo.wamo.social}
+    restart: unless-stopped
+
+  gateway:
+    image: m.daocloud.io/docker.io/nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-demo.wamo.social}
+      PUBLIC_SCHEME: ${PUBLIC_SCHEME:-https}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+      NGINX_ENVSUBST_FILTER: ^(PUBLIC_HOST|PUBLIC_SCHEME)$
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./gateway/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./certs/server.crt:/etc/nginx/certs/server.crt:ro
+      - ./certs/server.key:/etc/nginx/certs/server.key:ro
+    networks:
+      default:
+        aliases:
+          - pds.uat.test
+          - appview.uat.test
+          - alice.uat.test
+          - bob.uat.test
+    depends_on:
+      rice:
+        condition: service_started
+      pds:
+        condition: service_started
+      post-cache:
+        condition: service_started
+      frontend:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  pds-data:
+  appview-cache:
+  rice-storage:
