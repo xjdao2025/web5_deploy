@@ -28,7 +28,7 @@ services:
     restart: "no"
 
   plc:
-    image: ghcr.io/xjdao2025/did-method-plc@sha256:b37d0ddf4fde0eb5a1e96eccbea1be42b987682a4cf3b8a70ededd061b881a46
+    image: ghcr.io/xjdao2025/did-method-plc@sha256:7bc5e6e72a1a99c2ebbbf8d9d5b99ec187d8037ac283d613e2d0470a16aabd67
     platform: linux/amd64
     environment:
       PORT: 3000
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
 
   pds:
-    image: ghcr.io/xjdao2025/pds@sha256:2cabd417e214a7efec865daec95d17f4496bd435188682201a868fad23f87d1d
+    image: ghcr.io/xjdao2025/pds@sha256:a369a6554138f27c6553bc387e5adcc9e1389e8aacea299164ab970d3095277e
     platform: linux/amd64
     environment:
       NODE_EXTRA_CA_CERTS: /certs/ca.crt
@@ -145,7 +145,7 @@ services:
     restart: unless-stopped
 
   post-cache:
-    image: ghcr.io/xjdao2025/post_cache@sha256:26c450dbac89bccfa01f245ace847519c36ecde2902b7d66e7bc1b641ea05e9b
+    image: ghcr.io/xjdao2025/post_cache@sha256:ff81820f44652bbad00805f76e706c71295a31256ce5804d2dd1b3d1f0417cb9
     platform: linux/amd64
     command:
       - post_cache
