@@ -56,6 +56,18 @@ docker compose --env-file .env -f compose.yml down -v
 
 当前测试服务器的 Traefik 由 Nomad 管理，路由文件需要手动放入它的动态配置目录：
 
+路由使用 Let’s Encrypt TLS-ALPN-01；Traefik 的静态配置需要先定义下面的 resolver，
+并在首次加入时重启一次：
+
+```yaml
+certificatesResolvers:
+  le-tls:
+    acme:
+      email: lisbon@appendonly.org
+      storage: /letsencrypt/acme-tls.json
+      tlsChallenge: {}
+```
+
 ```bash
 traefik_container=$(docker ps --filter name=traefik- --format '{{.ID}}' | head -n 1)
 traefik_dynamic_dir=$(docker inspect "$traefik_container" \
@@ -64,5 +76,5 @@ sudo install -m 0644 demo-wamo-social.traefik.yaml \
   "$traefik_dynamic_dir/demo-wamo-social.yaml"
 ```
 
-这一步会由 Traefik 热加载，不会重启共享代理。若 Nomad 更换了 Traefik allocation，
-需要重新执行一次；正式持久化时再把同一份动态配置加入 Traefik 的部署模板。
+安装路由文件本身会由 Traefik 热加载。若 Nomad 更换了 Traefik allocation，
+需要重新执行一次；正式持久化时应把 resolver 和同一份动态配置加入 Traefik 的部署模板。

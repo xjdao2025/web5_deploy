@@ -204,6 +204,9 @@ services:
           - appview.uat.test
           - alice.uat.test
           - bob.uat.test
+          - chenxi.uat.test
+          - linlan.uat.test
+          - zhouye.uat.test
     depends_on:
       rice:
         condition: service_started

@@ -8,14 +8,38 @@ defmodule XiangjianDemoSeed do
 
   @alice "alice.uat.test"
   @bob "bob.uat.test"
+  @extra_accounts [
+    %{
+      handle: "chenxi.uat.test",
+      nickname: "陈溪",
+      email: "chenxi@uat.invalid",
+      grains: 300,
+      description: "记录乡村建筑与公共空间。"
+    },
+    %{
+      handle: "linlan.uat.test",
+      nickname: "林岚",
+      email: "linlan@uat.invalid",
+      grains: 260,
+      description: "关注社区教育和儿童活动。"
+    },
+    %{
+      handle: "zhouye.uat.test",
+      nickname: "周野",
+      email: "zhouye@uat.invalid",
+      grains: 220,
+      description: "参与在地农业与生态调查。"
+    }
+  ]
 
   def run do
-    # ponytail: one marker is enough for this disposable demo; reset volumes after a partial seed.
     if Repo.get_by(User, handle: @alice) do
       IO.puts("demo data already exists")
     else
       seed()
     end
+
+    seed_extra_accounts()
   end
 
   defp seed do
@@ -64,6 +88,30 @@ defmodule XiangjianDemoSeed do
     )
 
     IO.puts("demo data is ready")
+  end
+
+  defp seed_extra_accounts do
+    password = System.fetch_env!("MOCK_ACCOUNT_PASSWORD")
+
+    Enum.each(@extra_accounts, fn account ->
+      # ponytail: successful-run idempotency is enough for disposable demo data;
+      # reset the volumes after a partial account seed.
+      unless Repo.get_by(User, handle: account.handle) do
+        user = register(account.handle, account.nickname, account.email, password)
+        Grains.grant(user, account.grains, memo: "Demo 初始稻米")
+        |> ok!("grant #{account.handle}")
+
+        session = PDS.create_session(account.handle, password) |> ok!("login #{account.handle}")
+
+        PDS.put_profile(session["accessJwt"], session["did"], %{
+          "displayName" => account.nickname,
+          "description" => account.description
+        })
+        |> ok!("write #{account.handle} profile")
+      end
+    end)
+
+    IO.puts("additional demo accounts are ready")
   end
 
   defp register(handle, nickname, email, password) do

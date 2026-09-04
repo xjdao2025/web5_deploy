@@ -111,5 +111,5 @@ wait_http "frontend" "http://127.0.0.1:18080/"
 . "$env_file"
 
 echo "Demo is ready: $public_origin"
-echo "Accounts: alice.uat.test / bob.uat.test"
+echo "Accounts: alice.uat.test / bob.uat.test / chenxi.uat.test / linlan.uat.test / zhouye.uat.test"
 echo "Password: $MOCK_ACCOUNT_PASSWORD"
