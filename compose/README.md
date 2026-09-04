@@ -53,3 +53,16 @@ docker compose --env-file .env -f compose.yml down -v
 
 服务器上的 gateway 只监听 `127.0.0.1:18080`。外层 Traefik 负责把
 `demo.wamo.social` 的 HTTPS 请求代理到该端口。
+
+当前测试服务器的 Traefik 由 Nomad 管理，路由文件需要手动放入它的动态配置目录：
+
+```bash
+traefik_container=$(docker ps --filter name=traefik- --format '{{.ID}}' | head -n 1)
+traefik_dynamic_dir=$(docker inspect "$traefik_container" \
+  --format '{{range .Mounts}}{{if eq .Destination "/etc/traefik/dynamic"}}{{.Source}}{{end}}{{end}}')
+sudo install -m 0644 demo-wamo-social.traefik.yaml \
+  "$traefik_dynamic_dir/demo-wamo-social.yaml"
+```
+
+这一步会由 Traefik 热加载，不会重启共享代理。若 Nomad 更换了 Traefik allocation，
+需要重新执行一次；正式持久化时再把同一份动态配置加入 Traefik 的部署模板。

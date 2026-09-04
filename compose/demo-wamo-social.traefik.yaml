@@ -1,0 +1,14 @@
+http:
+  routers:
+    demo-wamo-social:
+      rule: 'Host(`demo.wamo.social`)'
+      entryPoints: [websecure]
+      service: demo-wamo-social
+      tls:
+        certResolver: le-dns
+
+  services:
+    demo-wamo-social:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:18080"
